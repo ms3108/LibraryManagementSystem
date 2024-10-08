@@ -1,0 +1,44 @@
+body {
+    background-image: url('/static/images/background.png'); /* Specify the background image */
+    background-size: cover; /* Make the image cover the whole screen */
+    background-position: center; /* Center the image */
+    background-repeat: no-repeat; /* Prevent the image from repeating */
+    height: 100vh; /* Full viewport height */
+    margin: 0; /* Remove default body margin */
+  }
+
+  /* General Styling */
+nav {
+    display: flex; /* Flexbox layout */
+    justify-content: space-between; /* Space between left and right sections */
+    align-items: center;
+    background-color: #f4f4f4; /* Background color of navbar */
+    padding: 10px 20px;
+    font-family: Arial, sans-serif;
+}
+
+/* Left side links */
+.nav-left a {
+    margin-right: 15px;
+    color: black;
+    text-decoration: none;
+}
+
+/* Right side links */
+.nav-right a {
+    margin-left: 15px;
+    color: grey;
+    text-decoration: none;
+}
+
+/* Ensure the right links are on the far right */
+.nav-right {
+    margin-left: auto;
+}
+
+nav a:hover {
+    color: #000;
+    text-decoration: underline;
+}
+
+
