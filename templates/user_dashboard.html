@@ -23,6 +23,32 @@
     </nav>
 
     <div class="container">
+
+
+        <h3>Borrowed Books</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in borrowed_books %}
+                <tr>
+                    <td>{{ book[1] }}</td>
+                    <td>{{ book[2] }}</td>
+                    <td>
+                        <form action="/return/{{ book[0] }}" method="POST">
+                            <button class="btn btn-danger" type="submit">Return</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
         <h2>Available Books</h2>
         <table class="table">
             <thead>
@@ -53,29 +79,7 @@
             </tbody>
         </table>
 
-        <h3>Borrowed Books</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Author</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for book in borrowed_books %}
-                <tr>
-                    <td>{{ book[1] }}</td>
-                    <td>{{ book[2] }}</td>
-                    <td>
-                        <form action="/return/{{ book[0] }}" method="POST">
-                            <button class="btn btn-danger" type="submit">Return</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
     </div>
 
 </body>

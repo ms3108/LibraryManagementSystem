@@ -48,7 +48,6 @@ def load_user(user_id):
 def index():
     return render_template('home.html')
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -73,7 +72,6 @@ def register():
             connection.close()
     return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -91,14 +89,23 @@ def login():
         cursor.close()
         connection.close()
 
-        # Check if user exists
+        # Debugging output
+        print("Username:", username)
+        print("Password Attempt:", password)
+        print("User Data:", user)
+
         if user is None:
             flash('User does not exist. Please register first.', 'danger')
         elif check_password_hash(user[2], password):  # user[2] is the hashed password
-            user_obj = User(user[0], user[1], user[3])
+            user_obj = User(user[0], user[1], user[3])  # Assuming user[3] is the role
             login_user(user_obj)
             flash('Login successful!', 'success')
-            return redirect(url_for('user_dashboard'))
+
+            # Redirect based on user role
+            if user[3] == 'admin':
+                return redirect(url_for('admin_dashboard'))  # Redirect to admin dashboard
+            else:
+                return redirect(url_for('user_dashboard'))  # Redirect to user dashboard
         else:
             flash('Invalid password. Please try again.', 'danger')
 
@@ -122,7 +129,7 @@ def user_dashboard():
 
     # Fetch borrowed books by the current user
     cursor.execute(
-        "SELECT b.id, b.title, b.author FROM borrowed_books bb JOIN books b ON bb.book_id = b.id WHERE bb.user_id = %s",
+        "SELECT b.id, b.title, b.author FROM transactions t JOIN books b ON t.book_id = b.id WHERE t.user_id = %s AND t.action = 'borrow'",
         (current_user.id,))
     borrowed_books = cursor.fetchall()
 
@@ -146,7 +153,7 @@ def borrow(book_id):
 
     if available > 0:
         cursor.execute("UPDATE books SET available = available - 1 WHERE id = %s", (book_id,))
-        cursor.execute("INSERT INTO borrowed_books (user_id, book_id) VALUES (%s, %s)", (current_user.id, book_id))
+        cursor.execute("INSERT INTO transactions (user_id, book_id, action) VALUES (%s, %s, 'borrow')", (current_user.id, book_id))
         connection.commit()
         flash('Book borrowed successfully!', 'success')
     else:
@@ -168,7 +175,7 @@ def return_book(book_id):
     )
     cursor = connection.cursor()
 
-    cursor.execute("DELETE FROM borrowed_books WHERE user_id = %s AND book_id = %s", (current_user.id, book_id))
+    cursor.execute("DELETE FROM transactions WHERE user_id = %s AND book_id = %s AND action = 'borrow'", (current_user.id, book_id))
     cursor.execute("UPDATE books SET available = available + 1 WHERE id = %s", (book_id,))
     connection.commit()
     cursor.close()
@@ -178,6 +185,96 @@ def return_book(book_id):
     return redirect(url_for('user_dashboard'))
 
 
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    # Only allow admins to access this route
+    if current_user.role != 'admin':
+        flash('Access denied. Admins only!', 'danger')
+        return redirect(url_for('user_dashboard'))
+
+    # Fetch all books to display on admin dashboard
+    connection = mysql.connector.connect(
+        host=app.config['MYSQL_HOST'],
+        user=app.config['MYSQL_USER'],
+        password=app.config['MYSQL_PASSWORD'],
+        database=app.config['MYSQL_DB']
+    )
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM books")
+    books = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    return render_template('admin_dashboard.html', books=books)
+
+
+@app.route('/add_book', methods=['GET', 'POST'])
+@login_required
+def add_book():
+    # Only allow admins to access this route
+    if current_user.role != 'admin':
+        flash('Access denied. Admins only!', 'danger')
+        return redirect(url_for('user_dashboard'))
+
+    if request.method == 'POST':
+        title = request.form['title']
+        author = request.form['author']
+        count = request.form['count']
+
+        connection = mysql.connector.connect(
+            host=app.config['MYSQL_HOST'],
+            user=app.config['MYSQL_USER'],
+            password=app.config['MYSQL_PASSWORD'],
+            database=app.config['MYSQL_DB']
+        )
+        cursor = connection.cursor()
+        try:
+            cursor.execute("INSERT INTO books (title, author, available) VALUES (%s, %s, %s)", (title, author, count))
+            connection.commit()
+            flash('Book added successfully!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        except mysql.connector.Error as err:
+            flash(f'Error: {err}', 'danger')
+        finally:
+            cursor.close()
+            connection.close()
+
+    return render_template('add_book.html')
+
+
+@app.route('/update_book/<int:book_id>', methods=['GET', 'POST'])
+@login_required
+def update_book(book_id):
+    # Only allow admins to access this route
+    if current_user.role != 'admin':
+        flash('Access denied. Admins only!', 'danger')
+        return redirect(url_for('user_dashboard'))
+
+    connection = mysql.connector.connect(
+        host=app.config['MYSQL_HOST'],
+        user=app.config['MYSQL_USER'],
+        password=app.config['MYSQL_PASSWORD'],
+        database=app.config['MYSQL_DB']
+    )
+    cursor = connection.cursor()
+
+    if request.method == 'POST':
+        new_count = request.form['count']
+        cursor.execute("UPDATE books SET available = %s WHERE id = %s", (new_count, book_id))
+        connection.commit()
+        flash('Book count updated successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    # Fetch current book details
+    cursor.execute("SELECT * FROM books WHERE id = %s", (book_id,))
+    book = cursor.fetchone()
+    cursor.close()
+    connection.close()
+
+    return render_template('update_book.html', book=book)
+
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -185,6 +282,6 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
 
-
 if __name__ == '__main__':
     app.run(debug=True)
+
