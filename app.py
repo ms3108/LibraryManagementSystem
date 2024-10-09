@@ -9,7 +9,7 @@ app.secret_key = 'your_secret_key'
 # MySQL configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '#open@123'
+app.config['MYSQL_PASSWORD'] = '6243'
 app.config['MYSQL_DB'] = 'library_db'
 
 # Flask-Login configuration
