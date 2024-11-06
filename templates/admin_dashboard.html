@@ -20,7 +20,15 @@
             </ul>
         </div>
     </nav>
-
+ {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
     <div class="container">
         <h2>Admin Dashboard</h2>
         <a href="/add_book" class="btn btn-success mb-3">Add New Book</a>

@@ -137,7 +137,6 @@ def user_dashboard():
     connection.close()
     return render_template('user_dashboard.html', books=books, borrowed_books=borrowed_books)
 
-
 @app.route('/borrow/<int:book_id>', methods=['POST'])
 @login_required
 def borrow(book_id):
@@ -148,16 +147,29 @@ def borrow(book_id):
         database=app.config['MYSQL_DB']
     )
     cursor = connection.cursor()
-    cursor.execute("SELECT available FROM books WHERE id = %s", (book_id,))
-    available = cursor.fetchone()[0]
 
-    if available > 0:
-        cursor.execute("UPDATE books SET available = available - 1 WHERE id = %s", (book_id,))
-        cursor.execute("INSERT INTO transactions (user_id, book_id, action) VALUES (%s, %s, 'borrow')", (current_user.id, book_id))
-        connection.commit()
-        flash('Book borrowed successfully!', 'success')
+    # Check how many books the user has borrowed
+    cursor.execute(
+        "SELECT COUNT(*) FROM transactions WHERE user_id = %s AND action = 'borrow'",
+        (current_user.id,)
+    )
+    borrowed_count = cursor.fetchone()[0]
+
+    # If the user has borrowed fewer than 3 books, allow them to borrow another
+    if borrowed_count < 3:
+        cursor.execute("SELECT available FROM books WHERE id = %s", (book_id,))
+        available = cursor.fetchone()[0]
+
+        if available > 0:
+            cursor.execute("UPDATE books SET available = available - 1 WHERE id = %s", (book_id,))
+            cursor.execute("INSERT INTO transactions (user_id, book_id, action) VALUES (%s, %s, 'borrow')",
+                           (current_user.id, book_id))
+            connection.commit()
+            flash('Book borrowed successfully!', 'success')
+        else:
+            flash('Book is not available.', 'danger')
     else:
-        flash('Book is not available.', 'danger')
+        flash('You have reached the maximum limit of 3 borrowed books.', 'warning')
 
     cursor.close()
     connection.close()
